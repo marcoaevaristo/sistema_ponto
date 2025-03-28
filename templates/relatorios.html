@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios - Sistema de Ponto Eletrônico{% endblock %}
+
+{% block content %}
+<div class="relatorios-container">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="page-header">
+                <i class="fas fa-chart-bar"></i> Relatório de Ponto
+            </h2>
+            <p class="text-muted">Relatório detalhado de registros de ponto</p>
+        </div>
+        <div class="action-buttons">
+            <button onclick="window.print()" class="btn btn-primary no-print">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <button onclick="exportToExcel()" class="btn btn-success no-print">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+            </button>
+        </div>
+    </div>
+
+    <!-- Informações do Funcionário -->
+    <div class="card mb-4 print-header">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-user"></i> Informações do Funcionário</h5>
+                    <p class="mb-1"><strong>Nome:</strong> {{ funcionario.nome }}</p>
+                    <p class="mb-1"><strong>Cargo:</strong> {{ funcionario.cargo }}</p>
+                    <p class="mb-1"><strong>Email:</strong> {{ funcionario.email }}</p>
+                </div>
+                <div class="col-md-6 text-md-right">
+                    <h5><i class="fas fa-calendar-alt"></i> Período do Relatório</h5>
+                    <p class="mb-1">
+                        <strong>De:</strong> 
+                        {{ registros_por_dia.keys()|list|last|string }}
+                    </p>
+                    <p class="mb-1">
+                        <strong>Até:</strong>
+                        {{ registros_por_dia.keys()|list|first|string }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <i class="fas fa-clock fa-2x mb-2"></i>
+                <h3>Total de Horas</h3>
+                <p>
+                    {% set total_horas_int = (total_horas.total_seconds() / 3600)|int %}
+                    {% set total_minutos = ((total_horas.total_seconds() % 3600) / 60)|int %}
+                    {{ '%02d:%02d'|format(total_horas_int, total_minutos) }}
+                </p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(45deg, #2ecc71, #27ae60);">
+                <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                <h3>Dias Trabalhados</h3>
+                <p>{{ registros_por_dia|length }}</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">
+                <i class="fas fa-business-time fa-2x mb-2"></i>
+                <h3>Média Diária</h3>
+                <p>
+                    {% if registros_por_dia|length > 0 %}
+                        {% set media_segundos = total_horas.total_seconds() / registros_por_dia|length %}
+                        {% set media_horas = (media_segundos / 3600)|int %}
+                        {% set media_minutos = ((media_segundos % 3600) / 60)|int %}
+                        {{ '%02d:%02d'|format(media_horas, media_minutos) }}
+                    {% else %}
+                        00:00
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(45deg, #9b59b6, #8e44ad);">
+                <i class="fas fa-chart-line fa-2x mb-2"></i>
+                <h3>Status</h3>
+                <p>Regular</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Registros -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0"><i class="fas fa-list"></i> Registros Detalhados</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="registros-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Entrada</th>
+                            <th>Início Almoço</th>
+                            <th>Fim Almoço</th>
+                            <th>Saída</th>
+                            <th>Horas Trabalhadas</th>
+                            <th class="no-print">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data, registro in registros_por_dia.items() %}
+                        <tr>
+                            <td>{{ data.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ registro['entrada'].strftime('%H:%M:%S') if registro['entrada'] else '-' }}</td>
+                            <td>{{ registro['inicio_almoco'].strftime('%H:%M:%S') if registro['inicio_almoco'] else '-' }}</td>
+                            <td>{{ registro['fim_almoco'].strftime('%H:%M:%S') if registro['fim_almoco'] else '-' }}</td>
+                            <td>{{ registro['saida'].strftime('%H:%M:%S') if registro['saida'] else '-' }}</td>
+                            <td>
+                                {% if registro['horas_trabalhadas'].total_seconds() > 0 %}
+                                    {% set horas = (registro['horas_trabalhadas'].total_seconds() / 3600)|int %}
+                                    {% set minutos = ((registro['horas_trabalhadas'].total_seconds() % 3600) / 60)|int %}
+                                    <span class="badge badge-success">
+                                        {{ '%02d:%02d'|format(horas, minutos) }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-secondary">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="no-print">
+                                {% if registro['horas_trabalhadas'].total_seconds() > 28800 %}
+                                    <span class="badge badge-warning">Hora Extra</span>
+                                {% elif registro['horas_trabalhadas'].total_seconds() < 28800 and registro['horas_trabalhadas'].total_seconds() > 0 %}
+                                    <span class="badge badge-danger">Hora Inferior</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Área de Assinatura (visível apenas na impressão) -->
+    <div class="mt-5 d-none d-print-block">
+        <div class="row">
+            <div class="col-6">
+                <div class="signature-line">
+                    <hr>
+                    <p class="text-center">Assinatura do Funcionário</p>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="signature-line">
+                    <hr>
+                    <p class="text-center">Assinatura do Supervisor</p>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-4">
+            <small class="text-muted">
+                Documento gerado em {{ momento_geracao }}
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .page-header {
+            margin-top: 0 !important;
+        }
+        .signature-line {
+            margin-top: 50px;
+        }
+    }
+
+    .stats-card {
+        transition: all 0.3s ease;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .badge {
+        padding: 0.5em 1em;
+        font-size: 0.9rem;
+    }
+
+    .action-buttons .btn {
+        margin-left: 10px;
+    }
+
+    .signature-line hr {
+        border-top: 1px solid #000;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportToExcel() {
+    // Implementar exportação para Excel
+    alert('Funcionalidade de exportação para Excel em desenvolvimento');
+}
+</script>
+{% endblock %}

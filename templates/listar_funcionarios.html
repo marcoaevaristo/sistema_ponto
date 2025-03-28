@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Lista de Funcionários - Sistema de Ponto Eletrônico{% endblock %}
+
+{% block content %}
+<div class="lista-funcionarios-container">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="page-header">
+                <i class="fas fa-users"></i> Funcionários
+            </h2>
+            <p class="text-muted">Gerenciamento de funcionários do sistema</p>
+        </div>
+        <div class="action-buttons">
+            <a href="{{ url_for('cadastrar_funcionario') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> Novo Funcionário
+            </a>
+            <button onclick="exportarDados()" class="btn btn-success ml-2">
+                <i class="fas fa-file-excel"></i> Exportar
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros e Pesquisa -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="search">Pesquisar</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="search" 
+                                   placeholder="Nome, email ou cargo...">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="departamento">Departamento</label>
+                        <select class="form-control" id="departamento">
+                            <option value="">Todos</option>
+                            <option value="RH">Recursos Humanos</option>
+                            <option value="TI">Tecnologia da Informação</option>
+                            <option value="Financeiro">Financeiro</option>
+                            <option value="Comercial">Comercial</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select class="form-control" id="status">
+                            <option value="">Todos</option>
+                            <option value="ativo">Ativos</option>
+                            <option value="inativo">Inativos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-secondary btn-block" onclick="limparFiltros()">
+                            <i class="fas fa-undo"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Funcionários -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="selectAll">
+                                    <label class="custom-control-label" for="selectAll"></label>
+                                </div>
+                            </th>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Cargo</th>
+                            <th>Departamento</th>
+                            <th>Status</th>
+                            <th>Último Acesso</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for funcionario in funcionarios %}
+                        <tr>
+                            <td>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" 
+                                           id="check{{ funcionario.id }}">
+                                    <label class="custom-control-label" 
+                                           for="check{{ funcionario.id }}"></label>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar mr-2">
+                                        {{ funcionario.nome[:2].upper() }}
+                                    </div>
+                                    <div>
+                                        {{ funcionario.nome }}
+                                        {% if funcionario.is_admin %}
+                                            <span class="badge badge-primary ml-1">Admin</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ funcionario.email }}</td>
+                            <td>{{ funcionario.cargo }}</td>
+                            <td>{{ funcionario.departamento if funcionario.departamento else '-' }}</td>
+                            <td>
+                                <span class="badge badge-success">Ativo</span>
+                            </td>
+                            <td>{{ funcionario.ultimo_acesso if funcionario.ultimo_acesso else 'Nunca' }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('editar_funcionario', id=funcionario.id) }}" 
+                                       class="btn btn-sm btn-info" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('relatorios') }}?funcionario={{ funcionario.id }}" 
+                                       class="btn btn-sm btn-success" title="Relatório">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </a>
+                                    {% if not funcionario.is_admin %}
+                                    <button onclick="confirmarExclusao({{ funcionario.id }})" 
+                                            class="btn btn-sm btn-danger" title="Excluir">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginação -->
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted">
+                    Mostrando {{ funcionarios|length }} funcionários
+                </div>
+                <nav>
+                    <ul class="pagination">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#"><i class="fas fa-chevron-left"></i></a>
+                        </li>
+                        <li class="page-item active">
+                            <a class="page-link" href="#">1</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">2</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">3</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="#"><i class="fas fa-chevron-right"></i></a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Tem certeza que deseja excluir este funcionário? Esta ação não pode ser desfeita.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="excluirFuncionario()">
+                    Confirmar Exclusão
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .lista-funcionarios-container {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .avatar {
+        width: 35px;
+        height: 35px;
+        background-color: #3498db;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .badge {
+        padding: 0.5em 1em;
+        font-size: 0.85rem;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .btn-group .btn {
+        padding: 0.375rem 0.75rem;
+    }
+
+    .pagination .page-link {
+        padding: 0.5rem 0.75rem;
+        color: var(--primary-color);
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .custom-checkbox .custom-control-input:checked ~ .custom-control-label::before {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    /* Estilo para todos os selects do sistema */
+    .form-control, select.form-control {
+        height: auto !important;
+        padding: 10px 15px !important;
+        font-size: 14px !important;
+        line-height: 1.5 !important;
+        border-radius: 8px !important;
+    }
+
+    /* Estilo específico para os filtros */
+    .filtros-container select.form-control {
+        width: 100% !important;
+        max-width: 100% !important;
+        white-space: normal !important;
+        text-overflow: ellipsis !important;
+        overflow: visible !important;
+    }
+
+    /* Estilo para as opções dentro dos selects */
+    select.form-control option {
+        padding: 10px !important;
+        font-size: 14px !important;
+        white-space: normal !important;
+    }
+
+    /* Ajustes para diferentes navegadores */
+    @-moz-document url-prefix() {
+        select.form-control {
+            padding-right: 25px !important;
+            text-indent: 0 !important;
+        }
+    }
+
+    /* Para Chrome/Safari */
+    select.form-control::-webkit-select {
+        padding: 10px !important;
+    }
+
+    /* Ajuste para o container dos filtros */
+    .card-body .row .col-md-3,
+    .card-body .row .col-md-4 {
+        margin-bottom: 15px;
+    }
+
+    /* Ajuste para labels */
+    .form-group label {
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let funcionarioIdParaExcluir = null;
+
+function confirmarExclusao(id) {
+    funcionarioIdParaExcluir = id;
+    $('#deleteModal').modal('show');
+}
+
+function excluirFuncionario() {
+    if (funcionarioIdParaExcluir) {
+        window.location.href = `/deletar_funcionario/${funcionarioIdParaExcluir}`;
+    }
+}
+
+function limparFiltros() {
+    document.getElementById('search').value = '';
+    document.getElementById('departamento').value = '';
+    document.getElementById('status').value = '';
+}
+
+function exportarDados() {
+    alert('Funcionalidade de exportação em desenvolvimento');
+}
+
+// Selecionar todos os checkboxes
+document.getElementById('selectAll').addEventListener('change', function(e) {
+    document.querySelectorAll('tbody .custom-control-input').forEach(checkbox => {
+        checkbox.checked = e.target.checked;
+    });
+});
+</script>
+{% endblock %}
+
+

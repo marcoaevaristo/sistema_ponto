@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Sistema de Ponto Eletrônico{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="text-center mb-4">
+            <i class="fas fa-clock fa-4x text-primary mb-3"></i>
+            <h2 class="font-weight-bold text-dark">Sistema de Ponto</h2>
+            <p class="text-muted">Faça login para acessar o sistema</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-body p-5">
+                <form method="POST" class="login-form">
+                    <div class="form-group">
+                        <label for="email" class="text-muted">
+                            <i class="fas fa-envelope"></i> Email
+                        </label>
+                        <input type="email" 
+                               class="form-control form-control-lg" 
+                               id="email" 
+                               name="email" 
+                               required 
+                               autocomplete="email"
+                               placeholder="seu@email.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="senha" class="text-muted">
+                            <i class="fas fa-lock"></i> Senha
+                        </label>
+                        <div class="input-group">
+                            <input type="password" 
+                                   class="form-control form-control-lg" 
+                                   id="senha" 
+                                   name="senha" 
+                                   required
+                                   placeholder="Digite sua senha">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" 
+                                        type="button" 
+                                        onclick="togglePassword()">
+                                    <i class="fas fa-eye" id="toggleIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-lg btn-block">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="text-muted">
+                Sistema de Ponto Eletrônico
+                <br>
+                <small>© {{ year }} Todos os direitos reservados</small>
+            </p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+    }
+
+    .login-form .form-control {
+        border-radius: 10px;
+        padding: 12px 20px;
+    }
+
+    .login-form .btn {
+        border-radius: 10px;
+        padding: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .fa-clock {
+        color: #3498db;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .input-group-append .btn {
+        border-top-right-radius: 10px;
+        border-bottom-right-radius: 10px;
+    }
+
+    .form-control:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword() {
+    const senhaInput = document.getElementById('senha');
+    const toggleIcon = document.getElementById('toggleIcon');
+    
+    if (senhaInput.type === 'password') {
+        senhaInput.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        senhaInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+}
+</script>
+{% endblock %}

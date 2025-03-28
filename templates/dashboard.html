@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema de Ponto Eletrônico{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Cabeçalho com informações do usuário -->
+    <div class="user-welcome mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="page-header">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </h2>
+                <p class="text-muted">
+                    Bem-vindo(a), {{ current_user.nome }}!
+                    <small>({{ current_user.cargo }})</small>
+                </p>
+            </div>
+            <div class="col-md-4 text-md-right">
+                <p class="current-time mb-0" id="current-time">
+                    <i class="far fa-clock"></i> Carregando...
+                </p>
+                <p class="current-date mb-0" id="current-date"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <i class="fas fa-sign-in-alt fa-2x mb-2"></i>
+                <h3>Último Registro</h3>
+                <p id="ultimo-registro">
+                    {% if registros_por_dia %}
+                        {{ registros_por_dia.keys()|list|first|string }}
+                    {% else %}
+                        Nenhum registro
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(45deg, #2ecc71, #27ae60);">
+                <i class="fas fa-clock fa-2x mb-2"></i>
+                <h3>Horas Hoje</h3>
+                <p id="horas-hoje">
+                    {% if registros_por_dia %}
+                        {% set hoje = registros_por_dia.keys()|list|first %}
+                        {{ '%02d:%02d'|format(
+                            (registros_por_dia[hoje]['horas_trabalhadas'].total_seconds() / 3600)|int,
+                            ((registros_por_dia[hoje]['horas_trabalhadas'].total_seconds() % 3600) / 60)|int
+                        ) if registros_por_dia[hoje]['horas_trabalhadas'].total_seconds() > 0 else '00:00' }}
+                    {% else %}
+                        00:00
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">
+                <i class="fas fa-calendar-alt fa-2x mb-2"></i>
+                <h3>Total Registros</h3>
+                <p>{{ registros_por_dia|length }}</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(45deg, #9b59b6, #8e44ad);">
+                <i class="fas fa-chart-line fa-2x mb-2"></i>
+                <h3>Status</h3>
+                <p id="status-atual">Verificando...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registrar Ponto -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0"><i class="fas fa-clock"></i> Registrar Ponto</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('registrar_ponto') }}" class="registro-ponto-form">
+                <div class="row align-items-end">
+                    <div class="col-md-8">
+                        <select name="tipo" class="form-control form-control-lg select-ponto">
+                            <option value="entrada">🌅 Entrada</option>
+                            <option value="inicio_almoco">🍽️ Início Almoço</option>
+                            <option value="fim_almoco">↩️ Fim Almoço</option>
+                            <option value="saida">🌇 Saída</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary btn-lg btn-block">
+                            <i class="fas fa-fingerprint"></i> Registrar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela de Registros -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0"><i class="fas fa-list"></i> Últimos Registros</h4>
+            <a href="{{ url_for('relatorios') }}" class="btn btn-outline-primary">
+                <i class="fas fa-chart-bar"></i> Ver Relatório Completo
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Entrada</th>
+                            <th>Início Almoço</th>
+                            <th>Fim Almoço</th>
+                            <th>Saída</th>
+                            <th>Horas Trabalhadas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data, registro in registros_por_dia.items() %}
+                        <tr>
+                            <td>{{ data.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ registro['entrada'].strftime('%H:%M:%S') if registro['entrada'] else '-' }}</td>
+                            <td>{{ registro['inicio_almoco'].strftime('%H:%M:%S') if registro['inicio_almoco'] else '-' }}</td>
+                            <td>{{ registro['fim_almoco'].strftime('%H:%M:%S') if registro['fim_almoco'] else '-' }}</td>
+                            <td>{{ registro['saida'].strftime('%H:%M:%S') if registro['saida'] else '-' }}</td>
+                            <td>
+                                {% if registro['horas_trabalhadas'].total_seconds() > 0 %}
+                                    {% set horas = (registro['horas_trabalhadas'].total_seconds() / 3600)|int %}
+                                    {% set minutos = ((registro['horas_trabalhadas'].total_seconds() % 3600) / 60)|int %}
+                                    <span class="badge badge-success">
+                                        {{ '%02d:%02d'|format(horas, minutos) }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-secondary">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stats-card {
+        transition: transform 0.3s ease;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .current-time {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: var(--secondary-color);
+    }
+
+    .current-date {
+        color: #666;
+    }
+
+    .registro-ponto-form select {
+        font-size: 1.1rem;
+    }
+
+    .badge {
+        padding: 0.5em 1em;
+        font-size: 0.9rem;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .btn-outline-primary {
+        border-color: var(--secondary-color);
+        color: var(--secondary-color);
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--secondary-color);
+        color: white;
+    }
+
+    .select-ponto {
+        height: auto !important;
+        padding: 12px !important;
+        font-size: 16px !important;
+        line-height: 1.5 !important;
+        border-radius: 8px !important;
+        background-color: #fff !important;
+        border: 1px solid #ced4da !important;
+    }
+
+    .select-ponto option {
+        padding: 12px !important;
+        font-size: 16px !important;
+    }
+
+    .btn-lg {
+        padding: 12px 20px !important;
+        font-size: 16px !important;
+    }
+
+    .registro-ponto-form select {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateTime() {
+    const now = new Date();
+    const timeElement = document.getElementById('current-time');
+    const dateElement = document.getElementById('current-date');
+    
+    timeElement.innerHTML = `<i class="far fa-clock"></i> ${now.toLocaleTimeString()}`;
+    dateElement.textContent = now.toLocaleDateString('pt-BR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+function updateStatus() {
+    const now = new Date();
+    const hours = now.getHours();
+    const statusElement = document.getElementById('status-atual');
+    
+    if (hours < 12) {
+        statusElement.textContent = "Período Matutino";
+    } else if (hours < 14) {
+        statusElement.textContent = "Horário de Almoço";
+    } else if (hours < 18) {
+        statusElement.textContent = "Período Vespertino";
+    } else {
+        statusElement.textContent = "Fora do Expediente";
+    }
+}
+
+// Atualiza a hora a cada segundo
+setInterval(updateTime, 1000);
+updateTime();
+updateStatus();
+</script>
+{% endblock %}
