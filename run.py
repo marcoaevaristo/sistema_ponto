@@ -1,3 +1,4 @@
+# This Python code snippet is typically found in a Flask application. Here's what it does:
 from app import app, db
 
 if __name__ == '__main__':
