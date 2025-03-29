@@ -63,7 +63,6 @@ PySocks==1.7.1
 python-dateutil==2.9.0.post0
 python-xlib==0.33
 pytz==2024.1
-pywin32==308
 pywinauto==0.6.9
 PyYAML==6.0.2
 requests==2.32.3
