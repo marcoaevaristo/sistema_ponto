@@ -31,5 +31,10 @@ def format_datetime(value, format='%d/%m/%Y %H:%M:%S'):
         value = pytz.utc.localize(value).astimezone(sp_tz)
     return value.strftime(format)
 
+# Rota principal
+@app.route('/')
+def home():
+    return "Bem-vindo ao Sistema de Ponto!"
+
 # Importa as rotas
 from routes import *
